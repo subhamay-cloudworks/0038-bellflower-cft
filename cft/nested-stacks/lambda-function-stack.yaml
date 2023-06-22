@@ -9,7 +9,8 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Nested Stack Standardization
   Modification History:
-    - 1.0.0  - June 19, 2023   -- Initial Version 
+    - 1.0.0   - June 19, 2023           -- Initial Version
+    - 1.0.1   - June 21, 2023           -- Changed the parameter LambdaFunctionName to paaccept ss the fully qualified Lambda Function name from the root stack.
   Resources: 
     - Lambda Function
   StepsToTest: |
@@ -62,7 +63,7 @@ Metadata:
         default: "Name of the Lambda Function."
       LambdaFunctionDescription:
         default: "Lambda Function Description."
-      S3IntegrationBucketName: 
+      S3BucketName: 
         default: "Inregration S3 Bucket Name"
 Parameters:
   ########################################### Project Name and Environment #######################
@@ -134,13 +135,13 @@ Parameters:
     AllowedPattern: "[a-zA-Z0-9-/_.]*"
     ConstraintDescription: "The length should be between 10 and 100, must contain only lowercase letter,numbers,dash, dot, underscore"
   LambdaFunctionName:
-    Default: processing-lambda
+    Default: processing-lambda-devl-us-east-1
     Description: Lambda Function Name
     Type: String
     MinLength: 15
     MaxLength: 50
-    AllowedPattern: "[a-z-]*"
-    ConstraintDescription: The length should be between 15 and 50, must contain only lowercase letters and dash(-) and should start with a letter.
+    AllowedPattern: "[a-z0-9-]*"
+    ConstraintDescription: The length should be between 15 and 50, must contain only lowercase letters,numbers and dash(-) and should start with a letter.
   LambdaFunctionDescription:
     Default: The Processing Lambda Function.
     Description: The Lambda Function Description
@@ -149,7 +150,7 @@ Parameters:
     MaxLength: 200
     AllowedPattern: "^[A-Z][a-zA-Z0-9 .,]*$"
     ConstraintDescription: The length should be between 30 and 300, must contain only lowercase letters,space( ) and dot(.) and should start with an uppercase letter.
-  S3IntegrationBucketName:
+  S3BucketName:
     Default: some-s3-bucket-name
     Description: "The Bucket Base Name of the S3 bucket used for integration,the region will be added as suffix by the template."
     Type: String
@@ -163,7 +164,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: !Ref LambdaRuntime
-      FunctionName: !Sub  '${LambdaFunctionName}-${Environment}-${AWS::Region}'
+      FunctionName: !Ref LambdaFunctionName
       Description: !Ref LambdaFunctionDescription
       Role: !Ref LambdaExecutionRoleArn
       Handler: !Ref LambdaHandlerPath
@@ -177,7 +178,7 @@ Resources:
         Mode: Active
       Environment:
         Variables:
-          S3_BUCKET_NAME: !Sub '${ProjectName}-${S3IntegrationBucketName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
+          S3_BUCKET_NAME: !Ref S3BucketName
       Tags: 
         - Key: ProjectName
           Value: !Ref ProjectName

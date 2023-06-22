@@ -9,7 +9,8 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Tarius
   Modification History:
-    - 1.0.0  - June 19, 2023   -- Initial Version 
+    - 1.0.0   - June 19, 2023   -- Initial Version 
+    - 1.0.1   - June 21, 2023   -- Added the project name as prefix to the CloudWatch Alarm names.
   Resources: 
     - Five CloudWatch Alarms For Lambda Fucntion.
   StepsToTest: |
@@ -405,8 +406,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       ActionsEnabled: true
-      AlarmName: !Sub '${AlarmNameLambdaInvocations}-${Environment}-${AWS::Region}'
-      AlarmDescription: !Sub "${ProjectName} - alarm for number lambda function invocations" 
+      AlarmName: !Ref AlarmNameLambdaInvocations
+      AlarmDescription: !Sub "${ProjectName} - ${Environment} alarm for number lambda function invocations" 
       AlarmActions:
         - !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       ComparisonOperator: !Ref AlarmComparisonOperatorLambdaInvocations
@@ -426,8 +427,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       ActionsEnabled: true
-      AlarmName: !Sub '${AlarmNameLambdaErrors}-${Environment}-${AWS::Region}'
-      AlarmDescription: !Sub "${ProjectName} - alarm for number lambda function errors" 
+      AlarmName: !Ref AlarmNameLambdaErrors
+      AlarmDescription: !Sub "${ProjectName} - ${Environment} alarm for number lambda function errors" 
       AlarmActions:
         - !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       ComparisonOperator: !Ref AlarmComparisonOperatorLambdaErrors
@@ -447,8 +448,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       ActionsEnabled: true
-      AlarmName: !Sub '${AlarmNameLambdaThrottles}-${Environment}-${AWS::Region}'
-      AlarmDescription: !Sub "${ProjectName} - alarm for lambda function throttles" 
+      AlarmName: !Ref AlarmNameLambdaThrottles
+      AlarmDescription: !Sub "${ProjectName} - ${Environment} alarm for lambda function throttles" 
       AlarmActions: 
         - !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       ComparisonOperator: !Ref AlarmComparisonOperatorLambdaThrottles
@@ -468,8 +469,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       ActionsEnabled: true
-      AlarmName: !Sub '${AlarmNameLambdaDuration}-${Environment}-${AWS::Region}'
-      AlarmDescription: !Sub "${ProjectName} - alarm for lambda function duration" 
+      AlarmName: !Ref AlarmNameLambdaDuration
+      AlarmDescription: !Sub "${ProjectName} - ${Environment} alarm for lambda function duration" 
       AlarmActions:
         - !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       ComparisonOperator: !Ref AlarmComparisonOperatorLambdaDuration
@@ -489,8 +490,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       ActionsEnabled: true
-      AlarmName: !Sub '${AlarmNameLambdaConcurrentExecutions}-${Environment}-${AWS::Region}'
-      AlarmDescription: !Sub "${ProjectName} - alarm for lambda concurrent executions" 
+      AlarmName: !Ref AlarmNameLambdaConcurrentExecutions
+      AlarmDescription: !Sub "${ProjectName} - ${Environment} alarm for lambda concurrent executions" 
       AlarmActions:
         - !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       ComparisonOperator: !Ref AlarmComparisonOperatorLambdaConcurrentExecutions

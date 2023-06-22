@@ -9,7 +9,8 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Nested Stack Standardization
   Modification History:
-    - 1.0.0  - December 10, 2022   -- Initial Version 
+    - 1.0.0   - December 10, 2022       -- Initial Version 
+    - 1.0.1   - June 21,2023            -- Changed the parameter S3BucketBaseName to S3BucketName to pass the fully qualified S3 Bucket name.
   Resources: 
     - S3 Bucket
   StepsToTest: |
@@ -31,7 +32,7 @@ Metadata:
     - Label:
         default: "S3 Configuration:"
       Parameters:
-      - S3BucketBaseName
+      - S3BucketName
       - S3DataBucketFolder
       - S3BucketBlockPublicAcls
       - S3BucketBlockPublicPolicy
@@ -47,8 +48,8 @@ Metadata:
       KmsMasterKeyAlias: 
         default: "The KMS Master Key Alias To Be Used For Server Side Encryption."
       ################################## S3 Bucket and Folder ######################################
-      S3BucketBaseName:
-        default: "S3 Bucket Base Name."
+      S3BucketName:
+        default: "S3 Bucket Name."
       S3DataBucketFolder:
         default: "The folder(s) to be created."
       S3BucketBlockPublicAcls:
@@ -85,12 +86,12 @@ Parameters:
     AllowedPattern: "[a-zA-Z0-9-]*"
     ConstraintDescription: "The length of the KMS Key Alias should be beteen 5 and 20 and can only contain lowercase alphanumeric characters and dash."
   ###################################### S3 Bucket and Folder ######################################
-  S3BucketBaseName:
-    Default: some-s3-bucket-name
-    Description: "The S3 Bucket Base Name For The Source Data, The Region Will Be Added As Suffix By The Template."
+  S3BucketName:
+    Default: "some-s3-bucket-name-devl-us-east-1"
+    Description: "The S3 bucket name for the source data."
     Type: String
     MinLength: 3
-    MaxLength: 40
+    MaxLength: 63
     AllowedPattern: "[a-z][a-z0-9-.]*"
     ConstraintDescription: "The length should be between 3 and 40, must contain only lowercase letter,numbers,dash, dot and should start with a letter."
   S3DataBucketFolder:
@@ -124,10 +125,10 @@ Parameters:
     Type: String
 Resources:
   ###################################### S3 Bucket #################################################
-  S3IntegrationBucket:
+  S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}"
+      BucketName: !Ref S3BucketName
       BucketEncryption:
           ServerSideEncryptionConfiguration: 
           - BucketKeyEnabled: True
@@ -149,9 +150,9 @@ Resources:
     Properties:
       ServiceToken: 
         Fn::ImportValue: !Sub '${S3CustomResourceStackName}-S3CreateFolderCustomResourceLambdaFunctionArn' 
-      bucket_name: !Ref S3IntegrationBucket
+      bucket_name: !Ref S3Bucket
       folders_to_create: !Ref S3DataBucketFolder
 Outputs:
-  S3IntegrationBucketArn:
+  S3BucketArn:
     Description: The endpoint of the S3 integration bucket.
-    Value: !GetAtt S3IntegrationBucket.Arn
+    Value: !GetAtt S3Bucket.Arn

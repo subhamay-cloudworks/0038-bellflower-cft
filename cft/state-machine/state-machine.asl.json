@@ -38,7 +38,7 @@
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
         "Message.$": "$",
-        "TopicArn": "${ReportResultSNSTopicArn}"
+        "TopicArn": "${SNSTopicArn}"
       },
       "Next": "Fail"
     },
@@ -63,7 +63,7 @@
       "Resource": "arn:aws:states:::sns:publish",
       "Parameters": {
         "Message.$": "$",
-        "TopicArn": "${ReportResultSNSTopicArn}"
+        "TopicArn": "${SNSTopicArn}"
       },
       "Next": "Success"
     },

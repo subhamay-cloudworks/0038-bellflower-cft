@@ -9,7 +9,8 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Nested Stack Standardization
   Modification History:
-    - 1.0.0  - December 10, 2022   -- Initial Version 
+    - 1.0.0   - December 10, 2022       -- Initial Version 
+    - 1.0.1   - June 21,2023            -- Changed the parameter SNSTopicBaseName to SNSTopicName to pass the fully qualified SNS Topic Name.
   Resources: 
     - SNS Topic with SQS Queue subscription
   StepsToTest: |
@@ -31,7 +32,7 @@ Metadata:
     - Label: 
         default: "SNS Configuration:"
       Parameters: 
-        - SNSTopicBaseName
+        - SNSTopicName
         - SNSTopicDisplayName
         - SNSSubscriptionEmail
     ParameterLabels:
@@ -39,7 +40,7 @@ Metadata:
         default: "The Project Name."
       Environment:
         default: "Environment Name."
-      SNSTopicBaseName:
+      SNSTopicName:
         default: "The SNS Topic Name."
       SNSTopicDisplayName:
         default: "The SNS Topic Display Name."
@@ -71,14 +72,14 @@ Parameters:
     AllowedPattern: "[a-zA-Z0-9-]*"
     ConstraintDescription: "The length of the KMS Key Alias should be beteen 5 and 20 and can only contain lowercase alphanumeric characters and dash."
   ###################################### SNS #######################################################
-  SNSTopicBaseName:
-    Default: "sns-topic-name"
+  SNSTopicName:
+    Default: "sns-topic-name-devl-us-east-1"
     Description: "The Base Name Of The Sns Topic."
     Type: String
-    MinLength: 8
-    MaxLength: 40
+    MinLength: 20
+    MaxLength: 100
     AllowedPattern: "[a-zA-Z0-9-]*"
-    ConstraintDescription: The SNS Topic name should be between 8 and 40, must contain only alphanumeric character and dash (-).
+    ConstraintDescription: The SNS Topic name should be between 20 and 100, must contain only alphanumeric character and dash (-).
   SNSTopicDisplayName:
     Default: "SNS Topic Name For Sending Notification"
     Description: "The SNS Topic Display Name."
@@ -101,7 +102,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties: 
       DisplayName: !Ref SNSTopicDisplayName
-      TopicName: !Sub '${SNSTopicBaseName}-${Environment}-${AWS::Region}'
+      TopicName: !Ref SNSTopicName
       KmsMasterKeyId: !Sub 'alias/${KmsMasterKeyAlias}'
       Tags:
         - Key: ProjectName
