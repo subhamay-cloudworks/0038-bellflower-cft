@@ -10,7 +10,10 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Project Bellflower
   Modification History:
-    - 1.0.0  - June 19, 2022   -- Initial Version 
+    - 1.0.0   - June 19, 2023           -- Initial Version 
+    - 1.0.1   - June 21, 2023           -- Changed the resource id from BellflowerReportResultsSNSTopic -> BellflowerSNSTopic
+                                        -- Passing the fully qualified resource names to the nexted stacks instead of the base names.
+
   Resources: 
 
   - A SQS Queue
@@ -76,18 +79,20 @@ Metadata:
     - Label:
         default: "S3 Configuration:"
       Parameters:
-      - S3IntegrationBucketName
+      - S3BucketBaseName
       - S3DataBucketFolder
       - S3BucketBlockPublicAcls
       - S3BucketBlockPublicPolicy
       - S3BucketIgnorePublicAcls
       - S3BucketRestrictPublicBuckets
+    #################################### Step Function #############################################
     - Label:
         default: "Step Function Configuration:"
       Parameters:
       - StepFunctionExecutionRoleName
       - StepFunctionExecutionPolicyName
-      - StepFunctionName
+      - StepFunctionBaseName
+    #################################### Cross Stack Name ##########################################
     - Label: 
         default: "Cross Stack for Custom Resource:"
       Parameters: 
@@ -153,7 +158,7 @@ Metadata:
       SNSSubscriptionEmail:
         default: "Result Notification SQS Subscription Email."
       ################################## S3 Bucket #################################################
-      S3IntegrationBucketName:
+      S3BucketBaseName:
         default: "S3 Bucket Base Name."
       S3DataBucketFolder:
         default: "The folder(s) to be created."
@@ -166,10 +171,13 @@ Metadata:
       S3BucketRestrictPublicBuckets:
         default: "Allow restrictPublicBuckets"
       ################################## Step Function #############################################
+      StepFunctionBaseName:
+        default: "Step Function base name."
       StepFunctionExecutionRoleName:
         default: "Step Function Role Name."
       StepFunctionExecutionPolicyName:
         default: "Step Function Policy Name."
+      ################################## Cross Stack Name ##########################################
       S3CustomResourceStackName:
         default: "Cross Stack Name for Custo Resource."
 Parameters:
@@ -373,7 +381,7 @@ Parameters:
     AllowedPattern: "^[A-Z][a-zA-Z0-9 .,]*$"
     ConstraintDescription: The length should be between 30 and 300, must contain only lowercase letters,space( ) and dot(.) and should start with an uppercase letter.
   ###################################### S3 Bucket #################################################
-  S3IntegrationBucketName:
+  S3BucketBaseName:
     Default: "integration-bucket"
     Description: "The Bucket base name of the S3 Bucket to be used for integration - the region and environment will be added as suffix by the template."
     Type: String
@@ -427,7 +435,7 @@ Parameters:
     MaxLength: 50
     AllowedPattern: "[a-zA-Z-]*"
     ConstraintDescription: The length should be between 5 and 50, must contain only lowercase letters,numbers and hyphen (-).
-  StepFunctionName:
+  StepFunctionBaseName:
     Default: state-machine
     Description: Step Function base name.
     Type: String
@@ -616,7 +624,7 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        S3BucketBaseName: !Sub '${ProjectName}-${S3IntegrationBucketName}'
+        S3BucketName: !Sub '${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
         S3DataBucketFolder: !Ref S3DataBucketFolder
         S3BucketBlockPublicAcls: !Ref S3BucketBlockPublicAcls
         S3BucketBlockPublicPolicy: !Ref S3BucketBlockPublicPolicy
@@ -635,17 +643,17 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        ProcessingLambdaFunctionName: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}'
-        IntegrationLambdaFunctionName: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}'
+        ProcessingLambdaFunctionName: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-${Environment}-${AWS::Region}'
+        IntegrationLambdaFunctionName: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-${Environment}-${AWS::Region}'
         LambdaExecutionRoleName: !Sub '${ProjectName}-${LambdaExecutionRoleName}'
         LambdaExecutionPolicyName: !Sub '${ProjectName}-${LambdaExecutionPolicyName}'
         StepFunctionExecutionRoleName: !Sub '${ProjectName}-${StepFunctionExecutionRoleName}'
         StepFunctionExecutionPolicyName: !Sub '${ProjectName}-${StepFunctionExecutionPolicyName}'
-        SQSQueueBaseName: !Sub '${ProjectName}-${SQSQueueBaseName}'
-        SNSTopicBaseName: !Sub '${ProjectName}-${SNSTopicBaseName}'
-        S3IntegrationBucketName: !Sub '${ProjectName}-${S3IntegrationBucketName}-${AWS::AccountId}'
+        SQSQueueName: !Sub '${ProjectName}-${SQSQueueBaseName}-${Environment}-${AWS::Region}'
+        SNSTopicName: !Sub '${ProjectName}-${SNSTopicBaseName}-${Environment}-${AWS::Region}'
+        S3BucketName: !Sub '${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
         KmsMasterKeyId: !Ref KmsMasterKeyId
-        StepFunctionName: !Sub '${ProjectName}-${StepFunctionName}'
+        StepFunctionName: !Sub '${ProjectName}-${StepFunctionBaseName}-${Environment}-${AWS::Region}'
       TimeoutInMinutes: 15
   ###################################### SQS Queue #################################################
   BellflowerSQSQueue:
@@ -657,7 +665,7 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        SQSQueueBaseName: !Sub '${ProjectName}-${SQSQueueBaseName}'
+        SQSQueueName: !Sub '${ProjectName}-${SQSQueueBaseName}-${Environment}-${AWS::Region}'
         DelaySeconds: !Ref DelaySeconds
         MaximumMessageSize: !Ref MaximumMessageSize
         MessageRetentionPeriod: !Ref MessageRetentionPeriod
@@ -666,7 +674,7 @@ Resources:
         KmsMasterKeyAlias: !Ref KmsMasterKeyAlias
       TimeoutInMinutes: 15
   ###################################### SNS Topic with Subscription ###############################
-  BellflowerReportResultsSNSTopic:
+  BellflowerSNSTopic:
     DeletionPolicy: Delete
     UpdateReplacePolicy: Retain
     Type: AWS::CloudFormation::Stack
@@ -675,7 +683,7 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        SNSTopicBaseName: !Sub '${ProjectName}-${SNSTopicBaseName}'
+        SNSTopicName: !Sub '${ProjectName}-${SNSTopicBaseName}-${Environment}-${AWS::Region}'
         SNSTopicDisplayName: !Ref SNSTopicDisplayName
         SNSSubscriptionEmail: !Ref SNSSubscriptionEmail
         KmsMasterKeyAlias: !Ref KmsMasterKeyAlias
@@ -690,16 +698,16 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        LambdaExecutionRoleArn: !GetAtt BellflowerIAMRole.Outputs.BellflowerLambdaExecutionRoleArn
+        LambdaExecutionRoleArn: !GetAtt BellflowerIAMRole.Outputs.LambdaExecutionRoleArn
         LambdaHandlerPath: !Join ['.', ['processing_lambda', !Select [1, !Split ['.', !Ref LambdaHandlerPath]]]]
         LambdaRuntime: !Ref LambdaRuntime
         LambdaFunctionTimeoutSecs: !Ref LambdaFunctionTimeoutSecs
         LambdaFunctionMemory: !Ref LambdaFunctionMemory 
         LambdaFunctionCodeBucket: !Ref LambdaFunctionCodeBucket
         LambdaFunctionCodeKey: !Ref ProcessingLambdaFunctionCodeKey
-        LambdaFunctionName: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}'
+        LambdaFunctionName: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-${Environment}-${AWS::Region}'
         LambdaFunctionDescription: !Ref ProcessingLambdaFunctionDescription
-        S3IntegrationBucketName: !Ref S3IntegrationBucketName
+        S3BucketName: !Sub '${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
       TimeoutInMinutes: 15
   ###################################### Integration Lambda Function ###################################################
   BellflowerIntegrationLambdaFunction:
@@ -711,16 +719,16 @@ Resources:
       Parameters:  
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
-        LambdaExecutionRoleArn: !GetAtt BellflowerIAMRole.Outputs.BellflowerLambdaExecutionRoleArn
+        LambdaExecutionRoleArn: !GetAtt BellflowerIAMRole.Outputs.LambdaExecutionRoleArn
         LambdaHandlerPath: !Join ['.', ['integration_lambda', !Select [1, !Split ['.', !Ref LambdaHandlerPath]]]]
         LambdaRuntime: !Ref LambdaRuntime
         LambdaFunctionTimeoutSecs: !Ref LambdaFunctionTimeoutSecs
         LambdaFunctionMemory: !Ref LambdaFunctionMemory 
         LambdaFunctionCodeBucket: !Ref LambdaFunctionCodeBucket
         LambdaFunctionCodeKey: !Ref IntegrationLambdaFunctionCodeKey
-        LambdaFunctionName: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}'
+        LambdaFunctionName: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-${Environment}-${AWS::Region}'
         LambdaFunctionDescription: !Ref IntegrationLambdaFunctionDescription
-        S3IntegrationBucketName: !Ref S3IntegrationBucketName
+        S3BucketName: !Sub '${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
       TimeoutInMinutes: 15
   BellflowerLambdaInvokePermission:
     Type: AWS::Lambda::Permission
@@ -728,7 +736,7 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !GetAtt BellflowerIntegrationLambdaFunction.Outputs.LambdaFunctionArn
       Principal: s3.amazonaws.com
-      SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${ProjectName}-${S3IntegrationBucketName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
+      SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
       SourceAccount: !Ref AWS::AccountId
   BellflowerLambdaTrigger:
     Type: 'Custom::LambdaTrigger'
@@ -737,7 +745,7 @@ Resources:
       ServiceToken: 
         Fn::ImportValue: !Sub '${S3CustomResourceStackName}-S3NoticationCustomResourceLambdaFunctionArn'
       LambdaArn: !GetAtt BellflowerIntegrationLambdaFunction.Outputs.LambdaFunctionArn
-      Bucket: !Sub '${ProjectName}-${S3IntegrationBucketName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
+      Bucket: !Sub '${ProjectName}-${S3BucketBaseName}-${AWS::AccountId}-${Environment}-${AWS::Region}'
       NotificationEventName: 'bellflower-s3-event-notification'
       Prefix: 'inbound'
       Suffix: '.json'
@@ -753,7 +761,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties: 
       KmsKeyId: !Ref KmsMasterKeyId
-      LogGroupName: !Sub '/aws/states/${ProjectName}-${StepFunctionName}-${Environment}-${AWS::Region}'
+      LogGroupName: !Sub '/aws/states/${ProjectName}-${StepFunctionBaseName}-${Environment}-${AWS::Region}'
       RetentionInDays: 14
       Tags: 
       - Key: ProjectName
@@ -763,7 +771,7 @@ Resources:
   BellflowerStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Sub '${ProjectName}-${StepFunctionName}-${Environment}-${AWS::Region}'
+      StateMachineName: !Sub '${ProjectName}-${StepFunctionBaseName}-${Environment}-${AWS::Region}'
       LoggingConfiguration:
         Level: ALL
         IncludeExecutionData: True
@@ -776,8 +784,8 @@ Resources:
       DefinitionSubstitutions:
         ProcessingLambda: !GetAtt BellflowerProcessingLambdaFunction.Outputs.LambdaFunctionArn
         WaitForResponseQueueURL: !GetAtt BellflowerSQSQueue.Outputs.SQSQueueURL
-        ReportResultSNSTopicArn: !GetAtt BellflowerReportResultsSNSTopic.Outputs.SNSTopicArn
-      RoleArn: !GetAtt BellflowerIAMRole.Outputs.BellflowerStepFunctionExecutionRoleArn
+        SNSTopicArn: !GetAtt BellflowerSNSTopic.Outputs.SNSTopicArn
+      RoleArn: !GetAtt BellflowerIAMRole.Outputs.StepFunctionExecutionRoleArn
       Tags: 
         - Key: ProjectName
           Value: !Ref ProjectName
@@ -797,31 +805,31 @@ Resources:
         Environment: !Ref Environment
         LambdaFunctionName: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-${Environment}-${AWS::Region}'
         SNSTopicName: !Sub '${ProjectName}-${SNSTopicBaseName}-${Environment}-${AWS::Region}'
-        AlarmNameLambdaInvocations: !Sub '${ProcessingLambdaFunctionName}-invocations-alarm'
+        AlarmNameLambdaInvocations: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-invocations-alarm'
         AlarmThresholdLambdaInvocations: !Ref AlarmThresholdLambdaInvocations
         AlarmPeriodInSecondsLambdaInvocations: !Ref AlarmPeriodInSecondsLambdaInvocations
         DatapointsToAlarmLambdaInvocations: !Ref DatapointsToAlarmLambdaInvocations
         EvaluationPeriodsForLambdaInvocations: !Ref EvaluationPeriodsForLambdaInvocations
         AlarmComparisonOperatorLambdaInvocations: !Ref AlarmComparisonOperatorLambdaInvocations
-        AlarmNameLambdaErrors: !Sub '${ProcessingLambdaFunctionName}-errors-alarm'
+        AlarmNameLambdaErrors: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-errors-alarm'
         AlarmThresholdLambdaErrors: !Ref AlarmThresholdLambdaErrors
         AlarmPeriodInSecondsLambdaErrors: !Ref AlarmPeriodInSecondsLambdaErrors
         DatapointsToAlarmLambdaErrors: !Ref DatapointsToAlarmLambdaErrors
         EvaluationPeriodsForLambdaErrors: !Ref EvaluationPeriodsForLambdaErrors
         AlarmComparisonOperatorLambdaErrors: !Ref AlarmComparisonOperatorLambdaErrors
-        AlarmNameLambdaThrottles: !Sub '${ProcessingLambdaFunctionName}-throttles-alarm'
+        AlarmNameLambdaThrottles: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-throttles-alarm'
         AlarmThresholdLambdaThrottles: !Ref AlarmThresholdLambdaThrottles
         AlarmPeriodInSecondsLambdaThrottles: !Ref AlarmPeriodInSecondsLambdaThrottles
         DatapointsToAlarmLambdaThrottles: !Ref DatapointsToAlarmLambdaThrottles
         EvaluationPeriodsForLambdaThrottles: !Ref EvaluationPeriodsForLambdaThrottles
         AlarmComparisonOperatorLambdaThrottles: !Ref AlarmComparisonOperatorLambdaThrottles
-        AlarmNameLambdaDuration: !Sub '${ProcessingLambdaFunctionName}-duration-alarm'
+        AlarmNameLambdaDuration: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-duration-alarm'
         AlarmThresholdLambdaDuration: !Ref AlarmThresholdLambdaDuration
         AlarmPeriodInSecondsLambdaDuration: !Ref AlarmPeriodInSecondsLambdaDuration
         DatapointsToAlarmLambdaDuration: !Ref DatapointsToAlarmLambdaDuration
         EvaluationPeriodsForLambdaDuration: !Ref EvaluationPeriodsForLambdaDuration
         AlarmComparisonOperatorLambdaDuration: !Ref AlarmComparisonOperatorLambdaDuration
-        AlarmNameLambdaConcurrentExecutions: !Sub '${ProcessingLambdaFunctionName}-conc-exec-alarm'
+        AlarmNameLambdaConcurrentExecutions: !Sub '${ProjectName}-${ProcessingLambdaFunctionName}-conc-exec-alarm'
         AlarmThresholdLambdaConcurrentExecutions: !Ref AlarmThresholdLambdaConcurrentExecutions
         AlarmPeriodInSecondsLambdaConcurrentExecutions: !Ref AlarmPeriodInSecondsLambdaConcurrentExecutions
         DatapointsToAlarmLambdaConcurrentExecutions: !Ref DatapointsToAlarmLambdaConcurrentExecutions
@@ -842,31 +850,31 @@ Resources:
         Environment: !Ref Environment
         LambdaFunctionName: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-${Environment}-${AWS::Region}'
         SNSTopicName: !Sub '${ProjectName}-${SNSTopicBaseName}-${Environment}-${AWS::Region}'
-        AlarmNameLambdaInvocations: !Sub '${IntegrationLambdaFunctionName}-invocations-alarm'
+        AlarmNameLambdaInvocations: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-invocations-alarm'
         AlarmThresholdLambdaInvocations: !Ref AlarmThresholdLambdaInvocations
         AlarmPeriodInSecondsLambdaInvocations: !Ref AlarmPeriodInSecondsLambdaInvocations
         DatapointsToAlarmLambdaInvocations: !Ref DatapointsToAlarmLambdaInvocations
         EvaluationPeriodsForLambdaInvocations: !Ref EvaluationPeriodsForLambdaInvocations
         AlarmComparisonOperatorLambdaInvocations: !Ref AlarmComparisonOperatorLambdaInvocations
-        AlarmNameLambdaErrors: !Sub '${IntegrationLambdaFunctionName}-errors-alarm'
+        AlarmNameLambdaErrors: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-errors-alarm'
         AlarmThresholdLambdaErrors: !Ref AlarmThresholdLambdaErrors
         AlarmPeriodInSecondsLambdaErrors: !Ref AlarmPeriodInSecondsLambdaErrors
         DatapointsToAlarmLambdaErrors: !Ref DatapointsToAlarmLambdaErrors
         EvaluationPeriodsForLambdaErrors: !Ref EvaluationPeriodsForLambdaErrors
         AlarmComparisonOperatorLambdaErrors: !Ref AlarmComparisonOperatorLambdaErrors
-        AlarmNameLambdaThrottles: !Sub '${IntegrationLambdaFunctionName}-throttles-alarm'
+        AlarmNameLambdaThrottles: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-throttles-alarm'
         AlarmThresholdLambdaThrottles: !Ref AlarmThresholdLambdaThrottles
         AlarmPeriodInSecondsLambdaThrottles: !Ref AlarmPeriodInSecondsLambdaThrottles
         DatapointsToAlarmLambdaThrottles: !Ref DatapointsToAlarmLambdaThrottles
         EvaluationPeriodsForLambdaThrottles: !Ref EvaluationPeriodsForLambdaThrottles
         AlarmComparisonOperatorLambdaThrottles: !Ref AlarmComparisonOperatorLambdaThrottles
-        AlarmNameLambdaDuration: !Sub '${IntegrationLambdaFunctionName}-duration-alarm'
+        AlarmNameLambdaDuration: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-duration-alarm'
         AlarmThresholdLambdaDuration: !Ref AlarmThresholdLambdaDuration
         AlarmPeriodInSecondsLambdaDuration: !Ref AlarmPeriodInSecondsLambdaDuration
         DatapointsToAlarmLambdaDuration: !Ref DatapointsToAlarmLambdaDuration
         EvaluationPeriodsForLambdaDuration: !Ref EvaluationPeriodsForLambdaDuration
         AlarmComparisonOperatorLambdaDuration: !Ref AlarmComparisonOperatorLambdaDuration
-        AlarmNameLambdaConcurrentExecutions: !Sub '${IntegrationLambdaFunctionName}-conc-exec-alarm'
+        AlarmNameLambdaConcurrentExecutions: !Sub '${ProjectName}-${IntegrationLambdaFunctionName}-conc-exec-alarm'
         AlarmThresholdLambdaConcurrentExecutions: !Ref AlarmThresholdLambdaConcurrentExecutions
         AlarmPeriodInSecondsLambdaConcurrentExecutions: !Ref AlarmPeriodInSecondsLambdaConcurrentExecutions
         DatapointsToAlarmLambdaConcurrentExecutions: !Ref DatapointsToAlarmLambdaConcurrentExecutions
@@ -876,25 +884,25 @@ Resources:
 Outputs:
   BellflowerS3BucketArn:
     Description: Bellflower S3 Bucket Arn
-    Value: !GetAtt BellflowerS3Bucket.Outputs.S3IntegrationBucketArn
+    Value: !GetAtt BellflowerS3Bucket.Outputs.S3BucketArn
   BellflowerLambdaFunctionExecutionRoleArn:
     Description: Bellflower Lambda Execution Role Arn
-    Value: !GetAtt BellflowerIAMRole.Outputs.BellflowerLambdaExecutionRoleArn
+    Value: !GetAtt BellflowerIAMRole.Outputs.LambdaExecutionRoleArn
   BellflowerStepFunctionExecutionRoleArn:
     Description: Bellflower Step Function Execution Role Arn.
-    Value: !GetAtt BellflowerIAMRole.Outputs.BellflowerStepFunctionExecutionRoleArn
+    Value: !GetAtt BellflowerIAMRole.Outputs.StepFunctionExecutionRoleArn
   BellflowerSQSQueueArn:
     Description: SQS Queue Arn
     Value: !GetAtt BellflowerSQSQueue.Outputs.SQSQueueArn
   BellflowerSQSQueueURL:
     Description: SQS Queue URL
     Value: !GetAtt BellflowerSQSQueue.Outputs.SQSQueueURL
-  BellflowerReportResultsSNSTopicArn:
+  BellflowerSNSTopicArn:
     Description: Report Result SNS Topic Arn
-    Value: !GetAtt BellflowerReportResultsSNSTopic.Outputs.SNSTopicArn
+    Value: !GetAtt BellflowerSNSTopic.Outputs.SNSTopicArn
   BellflowerSNSSubscriptionArn:
     Description: SNS Subscription Arn
-    Value: !GetAtt BellflowerReportResultsSNSTopic.Outputs.SNSSubscriptionArn
+    Value: !GetAtt BellflowerSNSTopic.Outputs.SNSSubscriptionArn
   BellflowerProcessingLambdaFunctionArn:
     Description: The Processing Lambda Function Arn
     Value: !GetAtt BellflowerProcessingLambdaFunction.Outputs.LambdaFunctionArn

@@ -9,7 +9,9 @@ Metadata:
   Owner: Subhamay Bhattacharyya
   ProjectName: Nested Stack Standardization
   Modification History:
-    - 1.0.0  - June 19, 2023   -- Initial Version 
+    - 1.0.0   - June 19, 2023           -- Initial Version 
+    - 1.0.1   - June 21,2023            -- Changed the parameter SNSTopicBaseName to SNSTopicName to pass the SNS Topic Name.
+                                        -- Changed the parameter SQSQueueBaseName to SQSQueueName to pass the SQS Name.
   Resources: 
     - IAM Role
   StepsToTest: |
@@ -40,9 +42,9 @@ Metadata:
       - LambdaExecutionPolicyName
       - StepFunctionExecutionRoleName
       - StepFunctionExecutionPolicyName
-      - SQSQueueBaseName
-      - SNSTopicBaseName
-      - S3IntegrationBucketName
+      - SQSQueueName
+      - SNSTopicName
+      - S3BucketName
     ParameterLabels:
       ################################## Project Name and Environment ##############################
       ProjectName:
@@ -62,11 +64,11 @@ Metadata:
         default: "Step Function Execution Role Name."
       StepFunctionExecutionPolicyName: 
         default: "Step Function Execution Policy Name."
-      SQSQueueBaseName:  
+      SQSQueueName:  
         default: "The Base Name Of The SQS Queue."
-      SNSTopicBaseName: 
+      SNSTopicName: 
         default: "The Name Of The SNS Topic to publish success / failure message."
-      S3IntegrationBucketName: 
+      S3BucketName: 
         default: "The Name Of The S3 Integration Bucket."
       StepFunctionName: 
         default: "The Name Of The Step Function"
@@ -144,7 +146,7 @@ Parameters:
     MaxLength: 60
     AllowedPattern: "[a-zA-Z0-9-]*"
     ConstraintDescription: The length should be between 20 and 60, must contain only alphanumeric or dash.
-  SQSQueueBaseName:
+  SQSQueueName:
     Default: some-sqs-queue-name
     Type: String
     Description: "SQS Queue Name."
@@ -152,7 +154,7 @@ Parameters:
     MaxLength: 40
     AllowedPattern: "[a-zA-Z0-9/-]*"
     ConstraintDescription: The length should be between 10 and 40, must contain only alphanumeric character.
-  SNSTopicBaseName: 
+  SNSTopicName: 
     Default: some-sns-topic-name
     Type: String
     Description: "SQS Queue Name."
@@ -160,7 +162,7 @@ Parameters:
     MaxLength: 40
     AllowedPattern: "[a-zA-Z0-9/-]*"
     ConstraintDescription: The length should be between 10 and 40, must contain only alphanumeric character.
-  S3IntegrationBucketName: 
+  S3BucketName: 
     Default: some-s3-bucket-name
     Description: "The S3 Bucket Base Name for the source data, the instance and region will be added as suffix by the template."
     Type: String
@@ -172,10 +174,10 @@ Parameters:
     Default: step-function-name
     Description: Step Function Execution Policy Name
     Type: String
-    MinLength: 5
-    MaxLength: 50
-    AllowedPattern: "[a-zA-Z-]*"
-    ConstraintDescription: The length should be between 5 and 50, must contain only lowecase letters, numbers and hyphen (-).
+    MinLength: 10
+    MaxLength: 60
+    AllowedPattern: "[a-zA-Z0-9-]*"
+    ConstraintDescription: The length should be between 5 and 60, must contain only lowecase letters, numbers and hyphen (-).
 Resources:
 
   ###################################### Lambda Execution Role #####################################
@@ -204,15 +206,15 @@ Resources:
                 - 'logs:CreateLogStream'
                 - 'logs:PutLogEvents'
               Resource: 
-                - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProcessingLambdaFunctionName}-${Environment}-${AWS::Region}:*'
-                - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${IntegrationLambdaFunctionName}-${Environment}-${AWS::Region}:*'
+                - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProcessingLambdaFunctionName}:*'
+                - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${IntegrationLambdaFunctionName}:*'
             - Sid: AllowReceiveAndDeleteMessageFromSQS
               Effect: Allow
               Action: 
                 - 'sqs:ReceiveMessage'
                 - 'sqs:DeleteMessage'
                 - 'sqs:GetQueueAttributes'
-              Resource: !Sub 'arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${SQSQueueBaseName}-${Environment}-${AWS::Region}'
+              Resource: !Sub 'arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${SQSQueueName}'
             - Sid: AllowKMSDecrypt
               Effect: Allow
               Action: 
@@ -220,22 +222,23 @@ Resources:
                 - kms:GenerateDataKey
                 - kms:GenerateDataKeyPair
               Resource: !Ref KmsMasterKeyId
-            - Sid: AllowWriteToS3OutboundFolder
+            - Sid: AllowReadWriteOnS3Bucket
               Effect: Allow
               Action: 
                 - s3:PutObject
                 - s3:GetObject
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3IntegrationBucketName}-${Environment}-${AWS::Region}/outbound/*'
+                - s3:PutObject
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3BucketName}/outbound/*'
             - Sid: AllowReadFromS3InboundFolder
               Effect: Allow
               Action: 
                 - s3:ReadObject
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3IntegrationBucketName}-${Environment}-${AWS::Region}/inbound/*'
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${S3BucketName}/inbound/*'
             - Sid: AllowSendTaskStatus
               Effect: Allow
               Action: 
                 - states:SendTaskSuccess
-              Resource: !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${StepFunctionName}-${Environment}-${AWS::Region}'
+              Resource: !Sub 'arn:${AWS::Partition}:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${StepFunctionName}'
       Tags: 
         - Key: ProjectName
           Value: !Ref ProjectName
@@ -266,7 +269,7 @@ Resources:
               Effect: Allow
               Action: 
                 - sqs:SendMessage
-              Resource: !Sub 'arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${SQSQueueBaseName}-${Environment}-${AWS::Region}'
+              Resource: !Sub 'arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${SQSQueueName}'
             - Sid: AllowKMSDecrypt
               Effect: Allow
               Action: 
@@ -292,16 +295,16 @@ Resources:
               Effect: Allow
               Action: 
               - sns:Publish
-              Resource: !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicBaseName}-${Environment}-${AWS::Region}'
+              Resource: !Sub 'arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${SNSTopicName}'
       Tags:
         - Key: ProjectName
           Value: !Ref ProjectName
         - Key: Environment
           Value: !Ref Environment
 Outputs:
-  BellflowerLambdaExecutionRoleArn:
+  LambdaExecutionRoleArn:
     Description: The Arn of the Lambda Execution Role
     Value: !GetAtt BellflowerLambdaExecutionRole.Arn
-  BellflowerStepFunctionExecutionRoleArn:
+  StepFunctionExecutionRoleArn:
     Description: The Arn of the Step Function Execution Role
     Value: !GetAtt BellflowerStepFunctionExecutionRole.Arn

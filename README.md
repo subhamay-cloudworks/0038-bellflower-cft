@@ -4,7 +4,7 @@ A State Machine demonstrating Lambda orchestration with a third party applicatio
 
 ## Description
 
-This is demonstration of a State Machine with Lambda, SNS, SQS and S3. The processing Lambda generates a payload and pushes to a SQS Queue. An integration Lambda processes the payload and send a file with task token to S3 outbound folder. An Business Application processes the information and sends a success trigger to the S3 inbound folder. The integration Lambda reads the success trigger and sends a success signal to the State Machine and resumes processing. Once processing completes, the State Machine sends a Success notification to SNS Topic. If the processing Lambda fails after 3 retries the State Machine fails and a Failure notification is sent to the SNS Topic..
+This is demonstration of a State Machine with Lambda, SNS, SQS and S3. The processing Lambda generates a payload and pushes to a SQS Queue. An integration Lambda processes the payload and send a file with task token to S3 outbound folder. An Business Application processes the information and sends a success trigger to the S3 inbound folder. The integration Lambda reads the success trigger and sends a success signal to the State Machine and resumes processing. Once processing completes, the State Machine sends a Success notification to SNS Topic. If the processing Lambda fails after 3 retries the State Machine fails and a Failure notification is sent to the SNS Topic. The entire stack is created using CloudFormation.
 
 ![Project Bellflower - Design Diagram](https://subhamay-projects-repository-us-east-1.s3.amazonaws.com/0038-bellflower/bellflower-architecture-diagram.png?)
 
@@ -22,7 +22,7 @@ This is demonstration of a State Machine with Lambda, SNS, SQS and S3. The proce
 
 ### Installing
 
-* Clone the repository.
+* Clone the repository https://github.com/subhamay-cloudworks/0038-bellflower-cft
 * Create a S3 bucket to store the CloudFormation nested stack templates and the Lambda code zip files.
 * Create the folders - bellflower/cft/nested-stacks, bellflower/cft/cross-stacks, bellflower/code/python, bellflower/cft/state-machine
 * Upload the following YAML templates to bellflower/cft/nested-stacks
@@ -34,14 +34,13 @@ This is demonstration of a State Machine with Lambda, SNS, SQS and S3. The proce
     * cloudwatch-stack.yaml
 * Upload the following YAML templates to bellflower/cft/cross-stacks
     * custom-resource-lambda-stack.yaml
-* Upload the following YAML templates to bellflower/cft/
-    * bellflower-root-stack.yaml
 * Zip and Upload the following Python files  to bellflower/code/python
     * processing_lambda.py (processing_lambda.zip)
     * integration_lambda.py (integration_lambda.zip)
-* Upload the ASL file state-machine.asl.json to bellflower/cft-state-machine
-* Create the cross-stack using the template custom-resource-lambda-stack.yaml by using the S3 url and pass the appropriate parameters.
-* Create the entire using by using the root stack template custom-resource-lambda-stack.yaml by providing the required parameters and the s3 cross stack name created in the previous step.
+* Upload the ASL file state-machine.asl.json to bellflower/cft/state-machine
+* Create the cross-stack using the template custom-resource-lambda-stack.yaml by using the S3 url and pass the appropriate parameters and note the cross stack name.
+* Create the entire stack by using the root stack template bellflower/cft/bellflower-root-stack.yaml and providing the required parameters and the s3 cross stack name created in the previous step.
+
 
 ### Executing program
 
